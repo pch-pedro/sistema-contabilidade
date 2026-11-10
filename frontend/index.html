@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Contabilidade - Gestão de Empresas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+  <div class="max-w-4xl mx-auto p-6">
+    <header class="bg-white shadow rounded-lg p-6 mb-6 flex justify-between items-center">
+      <div>
+        <h1 class="text-2xl font-bold text-blue-600">Sistema de Contabilidade</h1>
+        <p class="text-sm text-slate-500">Trabalho Acadêmico - Etapa 2</p>
+      </div>
+      <div id="empresa-ativa-banner" class="bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg text-right">
+        <span class="block text-xs text-slate-500 uppercase tracking-wider font-semibold">Empresa Ativa</span>
+        <span id="nome-empresa-ativa" class="font-bold text-blue-700">Nenhuma selecionada</span>
+      </div>
+    </header>
+
+    <main class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Formulário de Cadastro -->
+      <section class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold mb-4 text-slate-700">Cadastrar Nova Empresa</h2>
+        <form id="form-empresa" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Nome da Empresa *</label>
+            <input type="text" id="nome" required class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: Comercial ABC Ltda">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">CNPJ (Opcional)</label>
+            <input type="text" id="cnpj" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="00.000.000/0001-00">
+          </div>
+          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition">Salvar Empresa</button>
+        </form>
+        <div id="mensagem" class="mt-4 text-sm text-center font-medium"></div>
+      </section>
+
+      <!-- Lista de Empresas -->
+      <section class="bg-white shadow rounded-lg p-6 flex flex-col">
+        <h2 class="text-lg font-semibold mb-4 text-slate-700">Empresas Cadastradas</h2>
+        <div class="overflow-y-auto flex-grow max-h-72 border border-slate-200 rounded-lg divide-y divide-slate-100" id="lista-empresas">
+          <div class="p-4 text-center text-slate-400 text-sm">Carregando empresas...</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api/v1/empresas';
+
+    // Atualizar UI com empresa ativa do localStorage
+    function atualizarEmpresaAtivaUI() {
+      const empresaSalva = localStorage.getItem('empresa_ativa');
+      const spanNome = document.getElementById('nome-empresa-ativa');
+      if (empresaSalva) {
+        const emp = JSON.parse(empresaSalva);
+        spanNome.textContent = emp.nome;
+      } else {
+        spanNome.textContent = 'Nenhuma selecionada';
+      }
+    }
+
+    // Selecionar empresa ativa
+    window.selecionarEmpresa = function(id, nome) {
+      const emp = { id, nome };
+      localStorage.setItem('empresa_ativa', JSON.stringify(emp));
+      atualizarEmpresaAtivaUI();
+      alert(`Empresa "${nome}" selecionada como ativa com sucesso!`);
+      carregarEmpresas();
+    }
+
+    // Buscar e renderizar empresas
+    async function carregarEmpresas() {
+      const container = document.getElementById('lista-empresas');
+      try {
+        const response = await fetch(API_URL);
+        const empresas = await response.json();
+
+        if (empresas.length === 0) {
+          container.innerHTML = '<div class="p-4 text-center text-slate-400 text-sm">Nenhuma empresa cadastrada.</div>';
+          return;
+        }
+
+        const empresaAtiva = JSON.parse(localStorage.getItem('empresa_ativa') || '{}');
+
+        container.innerHTML = empresas.map(emp => {
+          const isAtiva = empresaAtiva.id === emp.id;
+          return `
+            <div class="p-3 flex justify-between items-center hover:bg-slate-50 transition ${isAtiva ? 'bg-blue-50/60' : ''}">
+              <div>
+                <p class="font-medium text-slate-800">${emp.nome}</p>
+                <p class="text-xs text-slate-500">CNPJ: ${emp.cnpj || 'Não informado'} | ID: ${emp.id}</p>
+              </div>
+              <button onclick="selecionarEmpresa(${emp.id}, '${emp.nome.replace(/'/g, "\\'")}')" 
+                class="px-3 py-1 text-xs font-semibold rounded-lg border ${isAtiva ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-600 border-blue-300 hover:bg-blue-50'} transition">
+                ${isAtiva ? 'Ativa' : 'Selecionar'}
+              </button>
+            </div>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('Erro ao carregar empresas:', error);
+        container.innerHTML = '<div class="p-4 text-center text-red-500 text-sm">Erro ao carregar do servidor.</div>';
+      }
+    }
+
+    // Cadastrar nova empresa
+    document.getElementById('form-empresa').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nome = document.getElementById('nome').value;
+      const cnpj = document.getElementById('cnpj').value;
+      const msgDiv = document.getElementById('mensagem');
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome, cnpj })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Erro ao cadastrar empresa.');
+        }
+
+        msgDiv.className = 'mt-4 text-sm text-center font-medium text-emerald-600';
+        msgDiv.textContent = 'Empresa cadastrada com sucesso!';
+        document.getElementById('form-empresa').reset();
+        carregarEmpresas();
+
+        setTimeout(() => { msgDiv.textContent = ''; }, 3000);
+      } catch (error) {
+        msgDiv.className = 'mt-4 text-sm text-center font-medium text-red-600';
+        msgDiv.textContent = error.message;
+      }
+    });
+
+    // Inicialização
+    atualizarEmpresaAtivaUI();
+    carregarEmpresas();
+  </script>
+</body>
+</html>

@@ -106,3 +106,7 @@ CREATE TABLE auditoria_logs (
     dados_novos JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_empresas_cnpj_normalizado 
+ON empresas (REGEXP_REPLACE(COALESCE(cnpj, ''), '[^0-9]', '', 'g')) 
+WHERE cnpj IS NOT NULL AND TRIM(cnpj) <> '' AND REGEXP_REPLACE(cnpj, '[^0-9]', '', 'g') <> '';

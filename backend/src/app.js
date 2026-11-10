@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const db = require('./config/db');
+const empresaRoutes = require('./routes/empresaRoutes');
 
 const app = express();
 
@@ -25,5 +26,8 @@ app.get('/api/v1/health', async (req, res) => {
     });
   }
 });
+
+// Rotas do Módulo de Empresas
+app.use('/api/v1/empresas', empresaRoutes);
 
 module.exports = app;
