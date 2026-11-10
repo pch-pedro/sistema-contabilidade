@@ -1,0 +1,29 @@
+const express = require('express');
+const cors = require('cors');
+const db = require('./config/db');
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+// Rota de Teste de Conexão com o Banco de Dados
+app.get('/api/v1/health', async (req, res) => {
+  try {
+    const result = await db.query('SELECT NOW() as current_time');
+    res.status(200).json({
+      status: 'success',
+      message: 'API conectada ao PostgreSQL com sucesso!',
+      database_time: result.rows[0].current_time
+    });
+  } catch (error) {
+    console.error('Erro ao conectar no banco de dados:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Falha na conexão com o banco de dados',
+      error: error.message
+    });
+  }
+});
+
+module.exports = app;
