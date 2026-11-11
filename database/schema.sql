@@ -115,3 +115,6 @@ ALTER TABLE plano_contas DROP CONSTRAINT IF EXISTS chk_tipo_conta;
 ALTER TABLE plano_contas ADD CONSTRAINT chk_tipo_conta CHECK (
     tipo IN ('Ativo', 'Passivo', 'Patrimônio Líquido', 'Despesa', 'Receita', 'Apuração do Resultado')
 );
+
+CREATE INDEX IF NOT EXISTS idx_lancamentos_empresa_data ON lancamentos (empresa_id, data);
+CREATE INDEX IF NOT EXISTS idx_lancamento_linhas_conta ON lancamento_linhas (conta_id);
