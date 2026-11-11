@@ -73,50 +73,62 @@ const verificarEmpresa = async (clientOrDb, empresaId) => {
 
 // Carregar plano de contas padrão para uma empresa específica
 const carregarPlanoPadrao = async (req, res) => {
-  const { empresaId } = req.params;
-
-  const client = await db.pool.connect();
-  try {
-    await client.query('BEGIN');
-
-    // 1. Verificar se a empresa existe e está ativa
-    const empCheck = await client.query('SELECT id, nome FROM empresas WHERE id = $1 AND deleted_at IS NULL', [empresaId]);
-    if (empCheck.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'Empresa não encontrada.' });
-    }
-
-    // 2. Inserir as contas utilizando transação e ON CONFLICT para evitar duplicações
-    let inseridas = 0;
-    for (const conta of CONTAS_PADRAO) {
-      const query = `
-        INSERT INTO plano_contas (empresa_id, codigo, nome, tipo, subtipo, natureza, ativo)
-        VALUES ($1, $2, $3, $4, $5, $6, TRUE)
-        ON CONFLICT (empresa_id, codigo) DO NOTHING
-        RETURNING id;
-      `;
-      const values = [empresaId, conta.codigo, conta.nome, conta.tipo, conta.subtipo, conta.natureza];
-      const result = await client.query(query, values);
-      if (result.rows.length > 0) {
-        inseridas++;
+    const { id: empresaId } = req.params;
+  
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+  
+      // 1. Verificar se a empresa existe e está ativa
+      const empCheck = await client.query('SELECT id, nome FROM empresas WHERE id = $1 AND deleted_at IS NULL', [empresaId]);
+      if (empCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Empresa não encontrada.' });
       }
+  
+      // 2. Verificar se o plano padrão já foi carregado anteriormente
+      const countCheck = await client.query('SELECT COUNT(*) FROM plano_contas WHERE empresa_id = $1 AND deleted_at IS NULL', [empresaId]);
+      const totalContas = parseInt(countCheck.rows[0].count, 10);
+  
+      if (totalContas >= CONTAS_PADRAO.length) {
+        await client.query('ROLLBACK');
+        return res.status(200).json({
+          message: 'Plano Padrão já carregado',
+          empresa_id: Number(empresaId)
+        });
+      }
+  
+      // 3. Inserir as contas utilizando transação e ON CONFLICT para evitar duplicações
+      let inseridas = 0;
+      for (const conta of CONTAS_PADRAO) {
+        const query = `
+          INSERT INTO plano_contas (empresa_id, codigo, nome, tipo, subtipo, natureza, ativo)
+          VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+          ON CONFLICT (empresa_id, codigo) DO NOTHING
+          RETURNING id;
+        `;
+        const values = [empresaId, conta.codigo, conta.nome, conta.tipo, conta.subtipo, conta.natureza];
+        const result = await client.query(query, values);
+        if (result.rows.length > 0) {
+          inseridas++;
+        }
+      }
+  
+      await client.query('COMMIT');
+  
+      res.status(200).json({
+        message: 'Plano de contas padrão processado com sucesso.',
+        empresa_id: Number(empresaId),
+        total_contas_padrao: CONTAS_PADRAO.length,
+        novas_contas_inseridas: inseridas
+      });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Erro ao carregar plano de contas padrão:', error);
+      res.status(500).json({ error: 'Erro interno ao carregar plano de contas padrão.' });
+    } finally {
+      client.release();
     }
-
-    await client.query('COMMIT');
-
-    res.status(200).json({
-      message: 'Plano de contas padrão processado com sucesso.',
-      empresa_id: Number(empresaId),
-      total_contas_padrao: CONTAS_PADRAO.length,
-      novas_contas_inseridas: inseridas
-    });
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Erro ao carregar plano de contas padrão:', error);
-    res.status(500).json({ error: 'Erro interno ao carregar plano de contas padrão.' });
-  } finally {
-    client.release();
-  }
 };
 
 // Listar contas do plano de contas de uma empresa

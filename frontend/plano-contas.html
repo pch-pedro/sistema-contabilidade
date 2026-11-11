@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Contabilidade - Plano de Contas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+  <div class="max-w-7xl mx-auto p-6">
+    <!-- Cabeçalho -->
+    <header class="bg-white shadow rounded-lg p-6 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-blue-600">Plano de Contas</h1>
+        <p class="text-sm text-slate-500">Gestão contábil e estruturação de contas</p>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg text-right">
+          <span class="block text-xs text-slate-500 uppercase tracking-wider font-semibold">Empresa Ativa</span>
+          <span id="nome-empresa-ativa" class="font-bold text-blue-700">Nenhuma selecionada</span>
+        </div>
+        <a href="index.html" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition">Voltar a Empresas</a>
+      </div>
+    </header>
+
+    <!-- Ações e Alertas -->
+    <div class="bg-white shadow rounded-lg p-6 mb-6 flex flex-wrap justify-between items-center gap-4">
+      <div class="flex gap-3">
+        <button onclick="carregarPlanoPadrao()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+          Carregar Plano Padrão (39 Contas)
+        </button>
+        <button onclick="abrirModalCriacao()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+          + Nova Conta Personalizada
+        </button>
+      </div>
+      <div id="mensagem-global" class="text-sm font-medium"></div>
+    </div>
+
+    <!-- Tabela de Contas -->
+    <main class="bg-white shadow rounded-lg overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th class="p-4">Código</th>
+              <th class="p-4">Nome da Conta</th>
+              <th class="p-4">Tipo</th>
+              <th class="p-4">Subtipo</th>
+              <th class="p-4 text-center">Natureza</th>
+              <th class="p-4 text-center">Situação</th>
+              <th class="p-4 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-contas" class="divide-y divide-slate-100 text-sm">
+            <tr>
+              <td colspan="7" class="p-6 text-center text-slate-400">Selecione uma empresa e carregue as contas.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal de Cadastro / Edição -->
+  <div id="modal-conta" class="fixed inset-0 bg-black/50 hidden flex justify-center items-center p-4 z-50">
+    <div class="bg-white rounded-lg max-w-lg w-full p-6 shadow-xl">
+      <h2 id="modal-titulo" class="text-lg font-semibold text-slate-700 mb-4">Nova Conta Personalizada</h2>
+      <form id="form-conta" class="space-y-4">
+        <input type="hidden" id="conta-id">
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Código da Conta *</label>
+          <input type="text" id="codigo" required class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: 1.9.9">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Nome da Conta *</label>
+          <input type="text" id="nome" required class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: Aplicações Financeiras">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Tipo *</label>
+            <select id="tipo" required onchange="atualizarSubtipos()" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              <option value="">Selecione...</option>
+              <option value="Ativo">Ativo</option>
+              <option value="Passivo">Passivo</option>
+              <option value="Patrimônio Líquido">Patrimônio Líquido</option>
+              <option value="Despesa">Despesa</option>
+              <option value="Receita">Receita</option>
+              <option value="Apuração do Resultado">Apuração do Resultado</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Subtipo</label>
+            <select id="subtipo" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              <option value="">Nenhum / N/A</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Natureza *</label>
+          <select id="natureza" required class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+            <option value="D">Devedora (D)</option>
+            <option value="C">Credora (C)</option>
+          </select>
+          <p class="text-xs text-slate-400 mt-1">Permite configurar contas redutoras com natureza customizada.</p>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" onclick="fecharModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition">Cancelar</button>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Salvar Conta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let empresaAtiva = null;
+
+    // Subtipos permitidos por tipo contábil
+    const subtiposPorTipo = {
+      'Ativo': [
+        { value: 'Circulante', label: 'Circulante' },
+        { value: 'Ativo Realizável a Longo Prazo', label: 'Realizável a Longo Prazo' },
+        { value: 'Ativo Investimento', label: 'Investimento' },
+        { value: 'Ativo Imobilizado', label: 'Imobilizado' },
+        { value: 'Ativo Intangível', label: 'Intangível' }
+      ],
+      'Passivo': [
+        { value: 'Passivo Circulante', label: 'Circulante' },
+        { value: 'Passivo Não Circulante', label: 'Não Circulante' }
+      ]
+    };
+
+    function atualizarSubtipos(subtipoSelecionado = '') {
+      const tipoSelect = document.getElementById('tipo').value;
+      const subtipoSelect = document.getElementById('subtipo');
+      subtipoSelect.innerHTML = '<option value="">Nenhum / N/A</option>';
+
+      if (subtiposPorTipo[tipoSelect]) {
+        subtiposPorTipo[tipoSelect].forEach(sub => {
+          const opt = document.createElement('option');
+          opt.value = sub.value;
+          opt.textContent = sub.label;
+          if (sub.value === subtipoSelecionado) opt.selected = true;
+          subtipoSelect.appendChild(opt);
+        });
+      }
+    }
+
+    function carregarEmpresaAtiva() {
+      const salva = localStorage.getItem('empresa_ativa');
+      if (!salva) {
+        document.getElementById('nome-empresa-ativa').textContent = 'Nenhuma selecionada';
+        document.getElementById('tabela-contas').innerHTML = `<tr><td colspan="7" class="p-6 text-center text-amber-600 font-medium">Por favor, selecione uma empresa na tela inicial primeiro.</td></tr>`;
+        return false;
+      }
+      empresaAtiva = JSON.parse(salva);
+      document.getElementById('nome-empresa-ativa').textContent = empresaAtiva.nome;
+      return true;
+    }
+
+    async function listarContas() {
+      if (!carregarEmpresaAtiva()) return;
+
+      try {
+        const response = await fetch(`http://localhost:3000/api/v1/empresas/${empresaAtiva.id}/contas`);
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.error || 'Erro ao carregar contas.');
+
+        const tbody = document.getElementById('tabela-contas');
+        if (data.contas.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400">Nenhuma conta cadastrada. Clique em "Carregar Plano Padrão" ou crie uma conta personalizada.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = data.contas.map(conta => `
+          <tr class="hover:bg-slate-50 transition border-b border-slate-100 ${!conta.ativo ? 'bg-slate-50/80 text-slate-400' : ''}">
+            <td class="p-4 font-mono font-medium">${conta.codigo}</td>
+            <td class="p-4 font-medium">${conta.nome}</td>
+            <td class="p-4">${conta.tipo}</td>
+            <td class="p-4 text-slate-500">${conta.subtipo || '-'}</td>
+            <td class="p-4 text-center"><span class="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs font-bold">${conta.natureza}</span></td>
+            <td class="p-4 text-center">
+              <span class="px-2 py-1 rounded-full text-xs font-semibold ${conta.ativo ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
+                ${conta.ativo ? 'Ativa' : 'Desativada'}
+              </span>
+            </td>
+            <td class="p-4 text-right space-x-2">
+              <button onclick='abrirModalEdicao(${JSON.stringify(conta)})' class="text-blue-600 hover:text-blue-800 font-medium text-xs bg-blue-50 px-2 py-1 rounded transition">Editar</button>
+              ${conta.ativo ? `<button onclick="desativarConta(${conta.id})" class="text-red-600 hover:text-red-800 font-medium text-xs bg-red-50 px-2 py-1 rounded transition">Desativar</button>` : ''}
+            </td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        mostrarMensagem(error.message, 'error');
+      }
+    }
+
+    async function carregarPlanoPadrao() {
+      if (!empresaAtiva) return;
+      try {
+        const response = await fetch(`http://localhost:3000/api/v1/empresas/${empresaAtiva.id}/contas/carregar-padrao`, {
+          method: 'POST'
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Erro ao carregar plano padrão.');
+        
+        mostrarMensagem(data.message, 'success');
+        listarContas();
+      } catch (error) {
+        mostrarMensagem(error.message, 'error');
+      }
+    }
+
+    function abrirModalCriacao() {
+      if (!empresaAtiva) return alert('Selecione uma empresa primeiro.');
+      document.getElementById('modal-titulo').textContent = 'Nova Conta Personalizada';
+      document.getElementById('conta-id').value = '';
+      document.getElementById('form-conta').reset();
+      atualizarSubtipos();
+      document.getElementById('modal-conta').classList.remove('hidden');
+    }
+
+    function abrirModalEdicao(conta) {
+      document.getElementById('modal-titulo').textContent = 'Editar Conta';
+      document.getElementById('conta-id').value = conta.id;
+      document.getElementById('codigo').value = conta.codigo;
+      document.getElementById('nome').value = conta.nome;
+      document.getElementById('tipo').value = conta.tipo;
+      atualizarSubtipos(conta.subtipo);
+      document.getElementById('natureza').value = conta.natureza;
+      document.getElementById('modal-conta').classList.remove('hidden');
+    }
+
+    function fecharModal() {
+      document.getElementById('modal-conta').classList.add('hidden');
+    }
+
+    document.getElementById('form-conta').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const contaId = document.getElementById('conta-id').value;
+      const payload = {
+        codigo: document.getElementById('codigo').value,
+        nome: document.getElementById('nome').value,
+        tipo: document.getElementById('tipo').value,
+        subtipo: document.getElementById('subtipo').value || null,
+        natureza: document.getElementById('natureza').value
+      };
+
+      const url = contaId 
+        ? `http://localhost:3000/api/v1/empresas/${empresaAtiva.id}/contas/${contaId}`
+        : `http://localhost:3000/api/v1/empresas/${empresaAtiva.id}/contas`;
+      const method = contaId ? 'PUT' : 'POST';
+
+      try {
+        const response = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Erro ao salvar conta.');
+
+        fecharModal();
+        mostrarMensagem('Conta salva com sucesso!', 'success');
+        listarContas();
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+
+    async function desativarConta(contaId) {
+      if (!confirm('Deseja realmente desativar esta conta? O histórico será preservado.')) return;
+      try {
+        const response = await fetch(`http://localhost:3000/api/v1/empresas/${empresaAtiva.id}/contas/${contaId}/desativar`, {
+          method: 'PATCH'
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Erro ao desativar conta.');
+
+        mostrarMensagem('Conta desativada com sucesso.', 'success');
+        listarContas();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    function mostrarMensagem(texto, tipo) {
+      const el = document.getElementById('mensagem-global');
+      el.textContent = texto;
+      el.className = `text-sm font-medium ${tipo === 'success' ? 'text-emerald-600' : 'text-red-600'}`;
+      setTimeout(() => { el.textContent = ''; }, 4000);
+    }
+
+    // Inicialização
+    listarContas();
+  </script>
+</body>
+</html>
