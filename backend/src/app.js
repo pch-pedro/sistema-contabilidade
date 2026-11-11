@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./config/db');
 const empresaRoutes = require('./routes/empresaRoutes');
+const planoContasRoutes = require('./routes/planoContasRoutes');
 
 const app = express();
 
@@ -29,5 +30,8 @@ app.get('/api/v1/health', async (req, res) => {
 
 // Rotas do Módulo de Empresas
 app.use('/api/v1/empresas', empresaRoutes);
+
+// Rotas do Plano de Contas (aninhadas sob empresas)
+app.use('/api/v1/empresas/:empresaId/plano-contas', planoContasRoutes);
 
 module.exports = app;

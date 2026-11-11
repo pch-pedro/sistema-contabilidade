@@ -40,7 +40,7 @@ CREATE TABLE plano_contas (
     tipo VARCHAR(50) NOT NULL,
     subtipo VARCHAR(50),
     natureza CHAR(1) NOT NULL CHECK (natureza IN ('D', 'C')),
-    ativa BOOLEAN DEFAULT TRUE,
+    ativo BOOLEAN DEFAULT TRUE, -- <--- Ajustado de 'ativa' para 'ativo'
     deleted_at TIMESTAMP,
     CONSTRAINT uk_empresa_codigo UNIQUE (empresa_id, codigo)
 );
