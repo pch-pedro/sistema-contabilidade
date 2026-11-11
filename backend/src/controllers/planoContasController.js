@@ -65,6 +65,12 @@ const CONTAS_PADRAO = [
   { codigo: '7.0.1', nome: 'Resultado do Exercício', tipo: 'Apuração do Resultado', subtipo: null, natureza: 'C' }
 ];
 
+// Helper para validar existência da empresa
+const verificarEmpresa = async (clientOrDb, empresaId) => {
+    const result = await clientOrDb.query('SELECT id FROM empresas WHERE id = $1 AND deleted_at IS NULL', [empresaId]);
+    return result.rows.length > 0;
+  };
+
 // Carregar plano de contas padrão para uma empresa específica
 const carregarPlanoPadrao = async (req, res) => {
   const { empresaId } = req.params;
@@ -115,29 +121,154 @@ const carregarPlanoPadrao = async (req, res) => {
 
 // Listar contas do plano de contas de uma empresa
 const listarContas = async (req, res) => {
-  const { empresaId } = req.params;
-
-  try {
-    const empCheck = await db.query('SELECT id FROM empresas WHERE id = $1 AND deleted_at IS NULL', [empresaId]);
-    if (empCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'Empresa não encontrada.' });
+    const { id: empresaId } = req.params;
+  
+    try {
+      if (!await verificarEmpresa(db, empresaId)) {
+        return res.status(404).json({ error: 'Empresa não encontrada.' });
+      }
+  
+      const query = 'SELECT * FROM plano_contas WHERE empresa_id = $1 AND deleted_at IS NULL ORDER BY codigo ASC';
+      const result = await db.query(query, [empresaId]);
+  
+      res.status(200).json({
+        empresa_id: Number(empresaId),
+        total: result.rows.length,
+        contas: result.rows
+      });
+    } catch (error) {
+      console.error('Erro ao listar contas:', error);
+      res.status(500).json({ error: 'Erro interno ao listar contas.' });
     }
+};
 
-    const query = 'SELECT * FROM plano_contas WHERE empresa_id = $1 AND deleted_at IS NULL ORDER BY codigo ASC';
-    const result = await db.query(query, [empresaId]);
+// 2. Consultar uma conta específica
+const buscarContaPorId = async (req, res) => {
+    const { id: empresaId, contaId } = req.params;
+  
+    try {
+      const query = 'SELECT * FROM plano_contas WHERE id = $1 AND empresa_id = $2 AND deleted_at IS NULL';
+      const result = await db.query(query, [contaId, empresaId]);
+  
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Conta não encontrada para esta empresa.' });
+      }
+  
+      res.status(200).json(result.rows[0]);
+    } catch (error) {
+      console.error('Erro ao buscar conta:', error);
+      res.status(500).json({ error: 'Erro interno ao buscar conta.' });
+    }
+};
 
-    res.status(200).json({
-      empresa_id: Number(empresaId),
-      total: result.rows.length,
-      contas: result.rows
-    });
-  } catch (error) {
-    console.error('Erro ao listar contas:', error);
-    res.status(500).json({ error: 'Erro interno ao listar contas.' });
-  }
+// 3. Cadastrar uma conta personalizada
+const criarConta = async (req, res) => {
+    const { id: empresaId } = req.params;
+    const { codigo, nome, tipo, subtipo, natureza } = req.body;
+  
+    if (!codigo || !nome || !tipo || !natureza) {
+      return res.status(400).json({ error: 'Campos obrigatórios ausentes: codigo, nome, tipo e natureza são obrigatórios.' });
+    }
+  
+    if (!['D', 'C'].includes(natureza.toUpperCase())) {
+      return res.status(400).json({ error: 'A natureza deve ser "D" (Devedora) ou "C" (Credora).' });
+    }
+  
+    try {
+      if (!await verificarEmpresa(db, empresaId)) {
+        return res.status(404).json({ error: 'Empresa não encontrada.' });
+      }
+  
+      const query = `
+        INSERT INTO plano_contas (empresa_id, codigo, nome, tipo, subtipo, natureza, ativo)
+        VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+        RETURNING *;
+      `;
+      const values = [empresaId, codigo.trim(), nome.trim(), tipo.trim(), subtipo ? subtipo.trim() : null, natureza.toUpperCase()];
+      
+      const result = await db.query(query, values);
+      res.status(201).json(result.rows[0]);
+    } catch (error) {
+      if (error.code === '23505') {
+        return res.status(409).json({ error: 'Já existe uma conta com este código nesta empresa.' });
+      }
+      console.error('Erro ao criar conta:', error);
+      res.status(500).json({ error: 'Erro interno ao criar conta.' });
+    }
+};
+
+// 4. Editar uma conta existente
+const editarConta = async (req, res) => {
+    const { id: empresaId, contaId } = req.params;
+    const { codigo, nome, tipo, subtipo, natureza } = req.body;
+  
+    if (!codigo || !nome || !tipo || !natureza) {
+      return res.status(400).json({ error: 'Campos obrigatórios ausentes: codigo, nome, tipo e natureza são obrigatórios.' });
+    }
+  
+    if (!['D', 'C'].includes(natureza.toUpperCase())) {
+      return res.status(400).json({ error: 'A natureza deve ser "D" (Devedora) ou "C" (Credora).' });
+    }
+  
+    try {
+      // Verificar se a conta pertence à empresa
+      const checkConta = await db.query('SELECT id FROM plano_contas WHERE id = $1 AND empresa_id = $2 AND deleted_at IS NULL', [contaId, empresaId]);
+      if (checkConta.rows.length === 0) {
+        return res.status(404).json({ error: 'Conta não encontrada para esta empresa.' });
+      }
+  
+      const query = `
+        UPDATE plano_contas 
+        SET codigo = $1, nome = $2, tipo = $3, subtipo = $4, natureza = $5
+        WHERE id = $6 AND empresa_id = $7
+        RETURNING *;
+      `;
+      const values = [codigo.trim(), nome.trim(), tipo.trim(), subtipo ? subtipo.trim() : null, natureza.toUpperCase(), contaId, empresaId];
+  
+      const result = await db.query(query, values);
+      res.status(200).json(result.rows[0]);
+    } catch (error) {
+      if (error.code === '23505') {
+        return res.status(409).json({ error: 'Já existe outra conta com este código nesta empresa.' });
+      }
+      console.error('Erro ao editar conta:', error);
+      res.status(500).json({ error: 'Erro interno ao editar conta.' });
+    }
+};
+
+// 5. Desativar uma conta (Soft Delete / Inativação)
+const desativarConta = async (req, res) => {
+    const { id: empresaId, contaId } = req.params;
+  
+    try {
+      const checkConta = await db.query('SELECT id, ativo FROM plano_contas WHERE id = $1 AND empresa_id = $2 AND deleted_at IS NULL', [contaId, empresaId]);
+      if (checkConta.rows.length === 0) {
+        return res.status(404).json({ error: 'Conta não encontrada para esta empresa.' });
+      }
+  
+      const query = `
+        UPDATE plano_contas 
+        SET ativo = FALSE 
+        WHERE id = $1 AND empresa_id = $2 
+        RETURNING *;
+      `;
+      const result = await db.query(query, [contaId, empresaId]);
+  
+      res.status(200).json({
+        message: 'Conta desativada com sucesso. Histórico preservado.',
+        conta: result.rows[0]
+      });
+    } catch (error) {
+      console.error('Erro ao desativar conta:', error);
+      res.status(500).json({ error: 'Erro interno ao desativar conta.' });
+    }
 };
 
 module.exports = {
-  carregarPlanoPadrao,
-  listarContas
-};
+    listarContas,
+    buscarContaPorId,
+    criarConta,
+    editarConta,
+    desativarConta,
+    carregarPlanoPadrao
+  };

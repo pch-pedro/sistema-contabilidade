@@ -34,4 +34,7 @@ app.use('/api/v1/empresas', empresaRoutes);
 // Rotas do Plano de Contas (aninhadas sob empresas)
 app.use('/api/v1/empresas/:empresaId/plano-contas', planoContasRoutes);
 
+// Rotas do Plano de Contas (aninhadas sob empresas com parâmetro :id)
+app.use('/api/v1/empresas/:id/contas', planoContasRoutes);
+
 module.exports = app;
