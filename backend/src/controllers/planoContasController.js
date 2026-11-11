@@ -1,5 +1,33 @@
 const db = require('../config/db');
 
+// Validador de tipos e subtipos contábeis
+const validarTipoESubtipo = (tipo, subtipo) => {
+  const tiposValidos = ['Ativo', 'Passivo', 'Patrimônio Líquido', 'Despesa', 'Receita', 'Apuração do Resultado'];
+  if (!tiposValidos.includes(tipo)) {
+    return { valido: false, mensagem: 'Tipo de conta inválido.' };
+  }
+
+  const subLimpo = subtipo ? subtipo.trim() : null;
+
+  if (tipo === 'Ativo') {
+    const subtiposAtivo = ['Circulante', 'Ativo Realizável a Longo Prazo', 'Ativo Investimento', 'Ativo Imobilizado', 'Ativo Intangível'];
+    if (subLimpo && !subtiposAtivo.includes(subLimpo)) {
+      return { valido: false, mensagem: 'Subtipo inválido para o tipo Ativo.' };
+    }
+  } else if (tipo === 'Passivo') {
+    const subtiposPassivo = ['Passivo Circulante', 'Passivo Não Circulante', 'Circulante', 'Não Circulante'];
+    if (subLimpo && !subtiposPassivo.includes(subLimpo)) {
+      return { valido: false, mensagem: 'Subtipo inválido para o tipo Passivo.' };
+    }
+  } else {
+    // PL, Despesa, Receita, Apuração não devem possuir subtipo
+    if (subLimpo) {
+      return { valido: false, mensagem: `O tipo "${tipo}" não deve possuir subtipo.` };
+    }
+  }
+  return { valido: true };
+};
+
 // Lista completa das 39 contas padrão com tipos, subtipos e naturezas corretas
 const CONTAS_PADRAO = [
   // ATIVO (Circulante)
@@ -178,14 +206,24 @@ const criarConta = async (req, res) => {
     const { id: empresaId } = req.params;
     const { codigo, nome, tipo, subtipo, natureza } = req.body;
   
-    if (!codigo || !nome || !tipo || !natureza) {
+    // Validação de campos obrigatórios (HTTP 400)
+    if (!codigo || typeof codigo !== 'string' || codigo.trim() === '' ||
+      !nome || typeof nome !== 'string' || nome.trim() === '' ||
+      !tipo || typeof tipo !== 'string' || tipo.trim() === '' ||
+      !natureza || typeof natureza !== 'string' || natureza.trim() === '') {
       return res.status(400).json({ error: 'Campos obrigatórios ausentes: codigo, nome, tipo e natureza são obrigatórios.' });
     }
   
     if (!['D', 'C'].includes(natureza.toUpperCase())) {
       return res.status(400).json({ error: 'A natureza deve ser "D" (Devedora) ou "C" (Credora).' });
     }
-  
+    
+    // Validação de Tipo e Subtipo
+    const validacaoTipo = validarTipoESubtipo(tipo.trim(), subtipo);
+    if (!validacaoTipo.valido) {
+      return res.status(400).json({ error: validacaoTipo.mensagem });
+    }
+
     try {
       if (!await verificarEmpresa(db, empresaId)) {
         return res.status(404).json({ error: 'Empresa não encontrada.' });
@@ -221,7 +259,12 @@ const editarConta = async (req, res) => {
     if (!['D', 'C'].includes(natureza.toUpperCase())) {
       return res.status(400).json({ error: 'A natureza deve ser "D" (Devedora) ou "C" (Credora).' });
     }
-  
+    
+    const validacaoTipo = validarTipoESubtipo(tipo.trim(), subtipo);
+    if (!validacaoTipo.valido) {
+      return res.status(400).json({ error: validacaoTipo.mensagem });
+    }
+
     try {
       // Verificar se a conta pertence à empresa
       const checkConta = await db.query('SELECT id FROM plano_contas WHERE id = $1 AND empresa_id = $2 AND deleted_at IS NULL', [contaId, empresaId]);

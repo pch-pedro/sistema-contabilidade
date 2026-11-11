@@ -110,3 +110,8 @@ CREATE TABLE auditoria_logs (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_empresas_cnpj_normalizado 
 ON empresas (REGEXP_REPLACE(COALESCE(cnpj, ''), '[^0-9]', '', 'g')) 
 WHERE cnpj IS NOT NULL AND TRIM(cnpj) <> '' AND REGEXP_REPLACE(cnpj, '[^0-9]', '', 'g') <> '';
+
+ALTER TABLE plano_contas DROP CONSTRAINT IF EXISTS chk_tipo_conta;
+ALTER TABLE plano_contas ADD CONSTRAINT chk_tipo_conta CHECK (
+    tipo IN ('Ativo', 'Passivo', 'Patrimônio Líquido', 'Despesa', 'Receita', 'Apuração do Resultado')
+);
