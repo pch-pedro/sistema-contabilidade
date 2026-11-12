@@ -4,6 +4,7 @@ const db = require('./config/db');
 const empresaRoutes = require('./routes/empresaRoutes');
 const planoContasRoutes = require('./routes/planoContasRoutes');
 const lancamentoRoutes = require('./routes/lancamentoRoutes');
+const relatorioRoutes = require('./routes/relatorioRoutes');
 
 const app = express();
 
@@ -39,5 +40,8 @@ app.use('/api/v1/empresas/:empresaId/plano-contas', planoContasRoutes);
 app.use('/api/v1/empresas/:id/contas', planoContasRoutes);
 
 app.use('/api/v1/empresas/:id/lancamentos', lancamentoRoutes);
+
+// Rotas de Relatórios (aninhadas sob empresas)
+app.use('/api/v1/empresas/:id/relatorios', relatorioRoutes);
 
 module.exports = app;

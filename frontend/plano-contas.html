@@ -8,20 +8,147 @@
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800">
   <div class="max-w-7xl mx-auto p-6">
-    <!-- Cabeçalho -->
-    <header class="bg-white shadow rounded-lg p-6 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+    
+  <!-- Cabeçalho -->
+  <header class="bg-white shadow rounded-lg p-6 mb-6 flex flex-col gap-5">
+
+    <!-- Identificação da página e empresa -->
+    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-blue-600">Plano de Contas</h1>
-        <p class="text-sm text-slate-500">Gestão contábil e estruturação de contas</p>
+        <h1 class="text-2xl font-bold text-blue-600">Sistema de Contabilidade</h1>
+        <p class="text-sm text-slate-500">Gestão empresarial e contábil</p>
       </div>
-      <div class="flex items-center gap-4">
+
+      <div class="flex items-center gap-3 flex-wrap justify-center">
         <div class="bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg text-right">
-          <span class="block text-xs text-slate-500 uppercase tracking-wider font-semibold">Empresa Ativa</span>
-          <span id="nome-empresa-ativa" class="font-bold text-blue-700">Nenhuma selecionada</span>
+          <span class="block text-xs text-slate-500 uppercase tracking-wider font-semibold">
+            Empresa Ativa
+          </span> 
+          <span id="nome-empresa-ativa" class="font-bold text-blue-700">
+            Nenhuma selecionada 
+          </span>
         </div>
-        <a href="index.html" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition">Voltar a Empresas</a>
+
+        <a href="index.html"
+          class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition">
+          Voltar às Empresas
+        </a>
       </div>
+    </div>
+
+    <!-- Navegação: Cadastros -->
+    <div>
+      <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+        Cadastros e Configurações
+      </h2>
+
+      <div class="flex flex-wrap gap-2">
+        <a href="plano-contas.html"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          Plano de Contas
+        </a>
+
+        <a href="saldos-iniciais.html"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          Saldos Iniciais
+        </a>
+
+        <a href="produtos.html"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          Produtos
+        </a>
+
+        <a href="ativos.html"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          Ativos
+        </a>
+      </div>
+    </div>
+
+    <!-- Navegação: Operações -->
+    <div>
+      <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+        Operações Contábeis e Empresariais
+      </h2>
+
+      <div class="flex flex-wrap gap-2">
+        <a href="lancamentos.html"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          Novo Lançamento
+        </a>
+
+        <a href="estoque.html"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          Controle de Estoque
+        </a>
+
+        <a href="compras.html"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          Compras
+        </a>
+
+        <a href="vendas.html"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          Vendas
+        </a>
+
+        <a href="depreciacao.html"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          Depreciação
+        </a>
+      </div>
+    </div>
+
+    <!-- Navegação: Livros Contábeis -->
+    <div>
+      <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+        Livros Contábeis
+      </h2>
+
+      <div class="flex flex-wrap gap-2">
+        <a href="livro-diario.html"
+          class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          Livro Diário
+        </a>
+
+        <a href="livro-razao.html"
+          class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          Livro Razão
+        </a>
+
+        <a href="balancete.html"
+          class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          Balancete
+        </a>
+      </div>
+      </div>
+
+      <!-- Navegação: Demonstrativos -->
+      <div>
+      <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+        Demonstrativos Contábeis
+      </h2>
+
+      <div class="flex flex-wrap gap-2">
+        <a href="balanco-patrimonial.html"
+          class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          Balanço Patrimonial
+        </a>
+
+        <a href="dre.html"
+          class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          DRE
+        </a>
+
+        <a href="dfc.html"
+          class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          DFC
+        </a>
+      </div>
+      </div>
+
     </header>
+
 
     <!-- Ações e Alertas -->
     <div class="bg-white shadow rounded-lg p-6 mb-6 flex flex-wrap justify-between items-center gap-4">

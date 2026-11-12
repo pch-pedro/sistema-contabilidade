@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Contabilidade - Livro Diário</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+  <div class="max-w-7xl mx-auto p-6">
+    <!-- Cabeçalho -->
+    <header class="bg-white shadow rounded-lg p-6 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-blue-600">Livro Diário</h1>
+        <p class="text-sm text-slate-500">Registro cronológico das operações contábeis</p>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg text-right">
+          <span class="block text-xs text-slate-500 uppercase tracking-wider font-semibold">Empresa Ativa</span>
+          <span id="nome-empresa-ativa" class="font-bold text-blue-700">Nenhuma selecionada</span>
+        </div>
+        <a href="plano-contas.html" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition">Voltar ao Plano de Contas</a>
+      </div>
+    </header>
+
+    <!-- Filtros -->
+    <section class="bg-white shadow rounded-lg p-6 mb-6">
+      <h2 class="text-lg font-semibold mb-4 text-slate-700">Filtros de Período</h2>
+      <form id="form-filtros" class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Data Inicial</label>
+          <input type="date" id="data-inicial" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Data Final</label>
+          <input type="date" id="data-final" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition">Filtrar</button>
+          <button type="button" onclick="limparFiltros()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-4 py-2 rounded-lg transition">Limpar</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Tabela do Diário -->
+    <main class="bg-white shadow rounded-lg overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th class="p-4 w-20">ID</th>
+              <th class="p-4 w-32">Data</th>
+              <th class="p-4">Histórico / Partidas</th>
+              <th class="p-4 text-right w-32">Débito (R$)</th>
+              <th class="p-4 text-right w-32">Crédito (R$)</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-diario" class="divide-y divide-slate-100 text-sm">
+            <tr>
+              <td colspan="5" class="p-6 text-center text-slate-400">Carregando lançamentos...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let empresaAtiva = null;
+
+    function carregarEmpresaAtiva() {
+      const salva = localStorage.getItem('empresa_ativa');
+      if (!salva) {
+        document.getElementById('nome-empresa-ativa').textContent = 'Nenhuma selecionada';
+        document.getElementById('tabela-diario').innerHTML = `<tr><td colspan="5" class="p-6 text-center text-amber-600 font-medium">Por favor, selecione uma empresa na tela inicial primeiro.</td></tr>`;
+        return false;
+      }
+      empresaAtiva = JSON.parse(salva);
+      document.getElementById('nome-empresa-ativa').textContent = empresaAtiva.nome;
+      return true;
+    }
+
+    async function carregarLivroDiario(dataInicial = '', dataFinal = '') {
+      if (!carregarEmpresaAtiva()) return;
+
+      let url = `http://localhost:3000/api/v1/empresas/${empresaAtiva.id}/relatorios/diario`;
+      const params = new URLSearchParams();
+      if (dataInicial) params.append('data_inicial', dataInicial);
+      if (dataFinal) params.append('data_final', dataFinal);
+      if (params.toString()) url += `?${params.toString()}`;
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.error || 'Erro ao carregar Livro Diário.');
+
+        const tbody = document.getElementById('tabela-diario');
+        if (data.lancamentos.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Nenhum lançamento encontrado para o período selecionado.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = data.lancamentos.map(lanc => {
+          const dataFormatada = new Date(lanc.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+          const badgeOrigem = lanc.tipo_origem === 'SALDO_INICIAL' ? '<span class="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-semibold">Saldo Inicial</span>' : '';
+
+          const linhasHtml = lanc.linhas.map(linha => {
+            const isDebito = linha.tipo === 'D';
+            const espacamento = isDebito ? '' : 'pl-6 italic';
+            const prefixo = isDebito ? 'D — ' : 'C — ';
+            const valorFormatado = Number(linha.valor).toLocaleString('pt-br', { minimumFractionDigits: 2 });
+
+            return `
+              <div class="flex justify-between py-1 ${espacamento}">
+                <span>${prefixo}<strong>${linha.conta_codigo}</strong> - ${linha.conta_nome}</span>
+                <span class="font-mono">${isDebito ? valorFormatado : ''}</span>
+                <span class="font-mono">${!isDebito ? valorFormatado : ''}</span>
+              </div>
+            `;
+          }).join('');
+
+          return `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100 align-top">
+              <td class="p-4 font-mono text-slate-500">#${lanc.lancamento_id}</td>
+              <td class="p-4 font-medium">${dataFormatada}</td>
+              <td class="p-4">
+                <div class="font-semibold text-slate-700 mb-1">${lanc.historico} ${badgeOrigem}</div>
+                <div class="space-y-1 text-xs text-slate-600">${linhasHtml}</div>
+              </td>
+              <td class="p-4 text-right font-mono text-slate-400">—</td>
+              <td class="p-4 text-right font-mono text-slate-400">—</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error(error);
+        document.getElementById('tabela-diario').innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500">${error.message}</td></tr>`;
+      }
+    }
+
+    document.getElementById('form-filtros').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const di = document.getElementById('data-inicial').value;
+      const df = document.getElementById('data-final').value;
+      carregarLivroDiario(di, df);
+    });
+
+    function limparFiltros() {
+      document.getElementById('data-inicial').value = '';
+      document.getElementById('data-final').value = '';
+      carregarLivroDiario();
+    }
+
+    // Inicialização
+    carregarLivroDiario();
+  </script>
+</body>
+</html>
